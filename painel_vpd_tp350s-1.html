@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#173d32">
+<title>Painel VPD — TP350S</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#18332b;background:#f3f7f4}
+body{margin:0;padding:16px;max-width:760px;margin-inline:auto}
+header{background:#173d32;color:white;border-radius:18px;padding:18px}
+h1{font-size:1.35rem;margin:0 0 6px} p{line-height:1.45}
+.sub{opacity:.85;font-size:.92rem;margin:0}
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+button{border:0;border-radius:12px;padding:13px 16px;font-size:1rem;font-weight:650;background:#245b4a;color:white}
+button.secondary{background:#e1ebe5;color:#173d32}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.card{background:white;border:1px solid #d9e5dd;border-radius:16px;padding:16px;min-width:0}
+.label{color:#587167;font-size:.92rem}.value{font-size:2rem;font-weight:750;margin-top:8px;font-variant-numeric:tabular-nums}
+.unit{font-size:1rem;font-weight:500}
+.wide{grid-column:1/-1}
+.status{padding:10px 12px;border-radius:10px;background:#e1ebe5;color:#244a3b;overflow-wrap:anywhere}
+small{color:#587167;line-height:1.4}
+table{width:100%;border-collapse:collapse;font-size:.9rem}td,th{text-align:left;padding:8px 4px;border-bottom:1px solid #e2eae4}
+@media(max-width:420px){.value{font-size:1.65rem}body{padding:10px}}
+</style>
+</head>
+<body>
+<header>
+<h1>Painel de Cultivo Indoor</h1>
+<p class="sub">ThermoPro TP350S · Temperatura, umidade e VPD do ar</p>
+</header>
+<div class="controls">
+<button id="connect">Conectar ao TP350S</button>
+<button id="disconnect" class="secondary" disabled>Desconectar</button>
+</div>
+<div id="status" class="status" role="status">Pronto para conectar. Abra esta página em Chrome/Android por HTTPS.</div>
+<div class="grid" style="margin-top:12px">
+<section class="card"><div class="label">Temperatura</div><div class="value"><span id="temp">--.-</span> <span class="unit">°C</span></div></section>
+<section class="card"><div class="label">Umidade relativa</div><div class="value"><span id="rh">--</span> <span class="unit">%</span></div></section>
+<section class="card wide"><div class="label">VPD do ar calculado</div><div class="value"><span id="vpd">--.--</span> <span class="unit">kPa</span></div><small>VPD calculado pela temperatura e umidade do ar; não é VPD folha-ar.</small></section>
+<section class="card wide"><div class="label">Última atualização</div><div id="updated">—</div><div style="margin-top:8px"><small>Pacote BLE bruto: <span id="raw">—</span></small></div></section>
+<section class="card wide"><div class="label">Histórico recente</div><table><thead><tr><th>Hora</th><th>°C</th><th>UR%</th><th>VPD kPa</th></tr></thead><tbody id="history"><tr><td colspan="4">Aguardando dados…</td></tr></tbody></table></section>
+</div>
+<p><small>Protótipo experimental. A decodificação atual é uma hipótese baseada nos testes: bytes 3–4 = temperatura em décimos de °C (little-endian); byte 5 = umidade relativa. Confirme com várias leituras antes de usar para decisões de cultivo.</small></p>
+<script>
+const SERVICE_UUID = '00010203-0405-0607-0809-0a0b0c0d1910';
+const CHAR_UUID = '00010203-0405-0607-0809-0a0b0c0d2b10';
+let device = null, characteristic = null, historyRows = [];
+const $ = id => document.getElementById(id);
+function status(s){ $('status').textContent = s; }
+function decode(value){
+  const b = Array.from(new Uint8Array(value.buffer, value.byteOffset, value.byteLength));
+  if (b.length < 6) throw new Error('Pacote curto: '+b.map(x=>x.toString(16).padStart(2,'0')).join('-'));
+  // Hipótese de protocolo: bytes [3,4] little-endian = décimos de °C; byte [5] = UR%.
+  const tempRaw = b[3] | (b[4] << 8);
+  const temp = tempRaw / 10;
+  const rh = b[5];
+  if (!Number.isFinite(temp) || temp < -20 || temp > 80 || rh < 0 || rh > 100) {
+    throw new Error('Pacote não corresponde à hipótese de decodificação.');
+  }
+  const es = 0.6108 * Math.exp((17.27 * temp) / (temp + 237.3));
+  const vpd = es * (1-rh/100);
+  return {b,temp,rh,vpd};
+}
+function onValue(event){
+  const v = event.target.value;
+  const raw = Array.from(new Uint8Array(v.buffer, v.byteOffset, v.byteLength)).map(x=>x.toString(16).padStart(2,'0').toUpperCase()).join('-');
+  $('raw').textContent = raw;
+  try {
+    const d = decode(v);
+    $('temp').textContent = d.temp.toFixed(1);
+    $('rh').textContent = d.rh.toFixed(0);
+    $('vpd').textContent = d.vpd.toFixed(2);
+    const now = new Date();
+    $('updated').textContent = now.toLocaleString('pt-BR');
+    historyRows.unshift({time:now.toLocaleTimeString('pt-BR'),temp:d.temp.toFixed(1),rh:d.rh,vpd:d.vpd.toFixed(2)});
+    historyRows = historyRows.slice(0,12);
+    $('history').innerHTML = historyRows.map(r=>`<tr><td>${r.time}</td><td>${r.temp}</td><td>${r.rh}</td><td>${r.vpd}</td></tr>`).join('');
+    status('Conectado · notificações recebidas. Confira se os valores coincidem com o visor físico.');
+  } catch(e) {
+    status('Recebido pacote BLE, mas a interpretação precisa ser validada: '+e.message);
+  }
+}
+async function connect(){
+ try{
+   if (!navigator.bluetooth) { status('Este navegador não oferece Web Bluetooth. Abra no Chrome atualizado em Android e use uma página HTTPS.'); return; }
+   status('Escolha TP350S na janela Bluetooth…');
+   device = await navigator.bluetooth.requestDevice({
+     filters:[{namePrefix:'TP350S'}],
+     optionalServices:[SERVICE_UUID]
+   });
+   device.addEventListener('gattserverdisconnected', ()=>{status('Sensor desconectado.'); $('connect').disabled=false; $('disconnect').disabled=true;});
+   status('Conectando ao sensor…');
+   const server = await device.gatt.connect();
+   const service = await server.getPrimaryService(SERVICE_UUID);
+   characteristic = await service.getCharacteristic(CHAR_UUID);
+   await characteristic.startNotifications();
+   characteristic.addEventListener('characteristicvaluechanged', onValue);
+   $('connect').disabled=true; $('disconnect').disabled=false;
+   status('Conectado. Aguardando notificações…');
+ }catch(e){status('Não foi possível conectar: '+e.message+'. Se o nRF Connect estiver conectado, desconecte-o antes de tentar.');}
+}
+async function disconnect(){
+ try { if(characteristic) await characteristic.stopNotifications(); if(device?.gatt?.connected) device.gatt.disconnect(); }
+ catch(e){}
+ $('connect').disabled=false; $('disconnect').disabled=true; status('Desconectado.');
+}
+$('connect').addEventListener('click',connect);
+$('disconnect').addEventListener('click',disconnect);
+</script>
+</body>
+</html>
