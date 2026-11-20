@@ -7,65 +7,149 @@
 <title>Painel Multissensor — Cultivo Indoor IFBA</title>
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#18332b;background:#f3f7f4}
-*{box-sizing:border-box}body{margin:0;padding:14px;max-width:850px;margin-inline:auto}
+*{box-sizing:border-box}body{margin:0;padding:14px;max-width:900px;margin-inline:auto}
 header{background:#173d32;color:white;border-radius:18px;padding:18px;margin-bottom:14px}
 h1{font-size:1.35rem;margin:0 0 6px}.sub{opacity:.88;font-size:.92rem;margin:0}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .card{background:white;border:1px solid #d9e5dd;border-radius:16px;padding:15px;min-width:0}
 .card h2{font-size:1.08rem;margin:0 0 8px}.status{font-size:.85rem;color:#587167;margin:0 0 12px;min-height:1.3em}
-button{border:0;border-radius:11px;padding:11px 13px;font-size:.95rem;font-weight:650;background:#245b4a;color:white;cursor:pointer;width:100%}
-button.secondary{background:#e1ebe5;color:#173d32;margin-top:8px}button:disabled{opacity:.55;cursor:not-allowed}
+button{border:0;border-radius:11px;padding:11px 13px;font-size:.95rem;font-weight:650;background:#245b4a;color:white;cursor:pointer;width:100%;margin-top:7px}
+button.secondary{background:#e1ebe5;color:#173d32}button:disabled{opacity:.55;cursor:not-allowed}
+input{width:100%;padding:12px;border:1px solid #b9cabe;border-radius:10px;font:inherit;margin:5px 0 10px}
+.login,.notice{background:white;border:1px solid #d9e5dd;border-radius:14px;padding:14px;margin:14px 0}
+.notice{background:#fff8e8;border-color:#ead9ad;font-size:.88rem;line-height:1.4}
 .metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
 .metric{background:#f3f7f4;border-radius:12px;padding:10px}.label{font-size:.8rem;color:#587167}.value{font-size:1.65rem;font-weight:750;margin-top:4px;font-variant-numeric:tabular-nums}.wide{grid-column:1/-1}
 .vpd{font-size:1.9rem;font-weight:800;color:#245b4a}.raw{font-size:.75rem;color:#71847b;overflow-wrap:anywhere;margin-top:8px}
 table{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:8px}td,th{text-align:left;padding:6px 3px;border-bottom:1px solid #e2eae4}
-.notice{background:#fff8e8;border:1px solid #ead9ad;border-radius:12px;padding:12px;margin:14px 0;font-size:.88rem;line-height:1.4}
 footer{font-size:.8rem;color:#587167;line-height:1.45;margin:14px 2px}
+.hidden{display:none!important}.topline{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.small{font-size:.82rem;color:#587167}.error{color:#a32d2d;font-size:.88rem;white-space:pre-wrap}.success{color:#176b3a}
 @media(max-width:620px){.grid{grid-template-columns:1fr}body{padding:10px}.value{font-size:1.5rem}}
 </style>
 </head>
 <body>
 <header>
-<h1>Painel Multissensor — Cultivo Indoor IFBA</h1>
-<p class="sub">ThermoPro TP350S · Monitoramento independente de dois ambientes</p>
+<div class="topline"><div><h1>Painel Multissensor — Cultivo Indoor IFBA</h1><p class="sub">ThermoPro TP350S · Monitoramento remoto de dois ambientes</p></div><span id="auth-badge" class="sub">Não autenticado</span></div>
 </header>
-<div class="notice"><strong>Como usar:</strong> conecte primeiro o sensor de Microverdes e depois o de Hidroponia. Em cada janela Bluetooth, selecione o aparelho correspondente. Os dois cartões podem permanecer conectados ao mesmo tempo, se o tablet e o navegador permitirem múltiplas conexões BLE.</div>
-<div class="grid">
+
+<section id="login-panel" class="login">
+<h2 style="margin:0 0 8px">Acesso ao monitoramento</h2>
+<p class="small">Entre com uma das contas cadastradas no Firebase Authentication.</p>
+<label for="email">E-mail</label><input id="email" type="email" autocomplete="username" placeholder="seu e-mail">
+<label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" placeholder="Sua senha">
+<button id="login-button">Entrar</button>
+<p id="login-error" class="error"></p>
+</section>
+
+<section id="app-panel" class="hidden">
+<div class="notice" id="role-notice"></div>
+<div class="topline"><span id="cloud-status" class="small">Conectando ao banco de dados…</span><button id="logout-button" class="secondary" style="width:auto;margin:0">Sair</button></div>
+<div class="grid" style="margin-top:12px">
 <section class="card" id="card-micro">
 <h2>🌿 Microverdes</h2><p class="status" id="status-micro">Aguardando conexão</p>
-<button id="connect-micro">Conectar sensor de Microverdes</button>
-<button class="secondary" id="disconnect-micro" disabled>Desconectar Microverdes</button>
+<div id="controls-micro"><button id="connect-micro">Conectar sensor de Microverdes</button><button class="secondary" id="disconnect-micro" disabled>Desconectar Microverdes</button></div>
 <div class="metrics">
 <div class="metric"><div class="label">Temperatura</div><div class="value"><span id="temp-micro">--.-</span> °C</div></div>
 <div class="metric"><div class="label">Umidade relativa</div><div class="value"><span id="rh-micro">--</span> %</div></div>
 <div class="metric wide"><div class="label">VPD do ar calculado</div><div class="vpd"><span id="vpd-micro">--.--</span> kPa</div></div>
 </div>
 <div class="label">Última atualização: <span id="updated-micro">—</span></div><div class="raw">Pacote BLE: <span id="raw-micro">—</span></div>
-<table><thead><tr><th>Hora</th><th>°C</th><th>UR%</th><th>VPD</th></tr></thead><tbody id="history-micro"><tr><td colspan="4">Sem leituras</td></tr></tbody></table>
+<table><thead><tr><th>Hora</th><th>°C</th><th>UR%</th><th>VPD</th></tr></thead><tbody id="history-micro"><tr><td colspan="4">Aguardando dados</td></tr></tbody></table>
 </section>
 <section class="card" id="card-hidro">
 <h2>💧 Hidroponia</h2><p class="status" id="status-hidro">Aguardando conexão</p>
-<button id="connect-hidro">Conectar sensor de Hidroponia</button>
-<button class="secondary" id="disconnect-hidro" disabled>Desconectar Hidroponia</button>
+<div id="controls-hidro"><button id="connect-hidro">Conectar sensor de Hidroponia</button><button class="secondary" id="disconnect-hidro" disabled>Desconectar Hidroponia</button></div>
 <div class="metrics">
 <div class="metric"><div class="label">Temperatura</div><div class="value"><span id="temp-hidro">--.-</span> °C</div></div>
 <div class="metric"><div class="label">Umidade relativa</div><div class="value"><span id="rh-hidro">--</span> %</div></div>
 <div class="metric wide"><div class="label">VPD do ar calculado</div><div class="vpd"><span id="vpd-hidro">--.--</span> kPa</div></div>
 </div>
-<div class="label">Última atualização: <span id="updated-hidro">—</span></div><div class="raw">Pacote BLE: <span id="raw-hidro">—</span></div>
-<table><thead><tr><th>Hora</th><th>°C</th><th>UR%</th><th>VPD</th></tr></thead><tbody id="history-hidro"><tr><td colspan="4">Sem leituras</td></tr></tbody></table>
+<div class="label">Última atualização: <span id="updated-hidro">—</span></div><div class="raw">Origem: <span id="raw-hidro">Firebase / aguardando</span></div>
+<table><thead><tr><th>Hora</th><th>°C</th><th>UR%</th><th>VPD</th></tr></thead><tbody id="history-hidro"><tr><td colspan="4">Aguardando dados</td></tr></tbody></table>
 </section>
 </div>
-<footer>Protótipo experimental. O VPD é calculado a partir da temperatura e umidade do ar; não é VPD folha-ar. A interpretação BLE utiliza a hipótese validada nos testes iniciais: bytes 3–4 = temperatura em décimos de °C (little-endian); byte 5 = umidade relativa. Teste a correspondência dos valores com o visor físico de cada sensor. A conexão simultânea depende do suporte do Android/Chrome e do hardware Bluetooth do tablet.</footer>
+</section>
+
+<footer>Protótipo experimental. O VPD é calculado a partir da temperatura e umidade do ar; não é VPD folha-ar. O computador do laboratório deve permanecer ligado, com Chrome aberto, página ativa e sensores Bluetooth conectados para transmitir dados. O acesso remoto consulta os registros armazenados no Firebase.</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
 <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyC8xE06z8Y4miCBimU_7tdUXBFkicGrxi8",
+  authDomain: "monitora-cultivo-indoor-ifba.firebaseapp.com",
+  databaseURL: "https://monitora-cultivo-indoor-ifba-default-rtdb.firebaseio.com",
+  projectId: "monitora-cultivo-indoor-ifba",
+  storageBucket: "monitora-cultivo-indoor-ifba.firebasestorage.app",
+  messagingSenderId: "860246033433",
+  appId: "1:860246033433:web:255e2bdaf3f5b0a0d85688"
+};
+
+// Estes UIDs controlam apenas a interface. As regras do Realtime Database
+// continuam sendo a proteção real de leitura e gravação.
+const LAB_UID = "LCgWYWm8drbispALXYN38OkW5Wa2";
+const EVELYN_UID = "VPHiy2kIN3ReiC2rJmWudpzlpH03";
 const SERVICE_UUID='00010203-0405-0607-0809-0a0b0c0d1910';
 const CHAR_UUID='00010203-0405-0607-0809-0a0b0c0d2b10';
-const sensors={
- micro:{device:null,characteristic:null,history:[],label:'Microverdes'},
- hidro:{device:null,characteristic:null,history:[],label:'Hidroponia'}
-};
+const SEND_INTERVAL_MS = 60000; // grava no máximo uma amostra por minuto por ambiente
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
 const $=id=>document.getElementById(id);
+const sensors={
+ micro:{device:null,characteristic:null,lastSent:0,label:'Microverdes'},
+ hidro:{device:null,characteristic:null,lastSent:0,label:'Hidroponia'}
+};
+let activeUser = null;
+let isLab = false;
+const historyCache = {micro:[], hidro:[]};
+const historyRefs = [];
+
 function setStatus(role,message){$('status-'+role).textContent=message;}
+function showError(message){$('login-error').textContent=message;}
+function renderHistory(role){
+ const rows=historyCache[role].slice().sort((a,b)=>(b.timestamp||0)-(a.timestamp||0)).slice(0,8);
+ $('history-'+role).innerHTML=rows.length ? rows.map(r=>{
+  const date = r.clientTime ? new Date(r.clientTime) : new Date(r.timestamp || Date.now());
+  const time = Number.isNaN(date.getTime()) ? '—' : date.toLocaleTimeString('pt-BR');
+  return `<tr><td>${time}</td><td>${Number(r.temp).toFixed(1)}</td><td>${Number(r.rh)}</td><td>${Number(r.vpd).toFixed(2)}</td></tr>`;
+ }).join('') : '<tr><td colspan="4">Sem leituras armazenadas</td></tr>';
+ if(rows.length){
+  const latest=rows[0], date=latest.clientTime?new Date(latest.clientTime):new Date(latest.timestamp||Date.now());
+  $('temp-'+role).textContent=Number(latest.temp).toFixed(1);
+  $('rh-'+role).textContent=String(latest.rh);
+  $('vpd-'+role).textContent=Number(latest.vpd).toFixed(2);
+  $('updated-'+role).textContent=date.toLocaleString('pt-BR');
+ }
+}
+function stopHistoryListeners(){
+ historyRefs.forEach(({ref,callback})=>ref.off('child_added',callback));
+ historyRefs.length=0;
+}
+function startHistoryListeners(){
+ stopHistoryListeners();
+ for(const role of ['micro','hidro']){
+  historyCache[role]=[];
+  const ref=db.ref('leituras/'+role).orderByChild('timestamp').limitToLast(100);
+  const callback=snap=>{
+   const record=snap.val();
+   if(!record)return;
+   historyCache[role]=historyCache[role].filter(item=>item.id!==snap.key);
+   historyCache[role].push({...record,id:snap.key});
+   historyCache[role].sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
+   historyCache[role]=historyCache[role].slice(-100);
+   renderHistory(role);
+  };
+  ref.on('child_added',callback,error=>{
+   $('cloud-status').textContent='Erro ao ler '+role+': '+error.message;
+  });
+  historyRefs.push({ref,callback});
+ }
+ $('cloud-status').textContent='Conectado à nuvem · recebendo histórico e novas leituras.';
+}
 function decode(value){
  const b=Array.from(new Uint8Array(value.buffer,value.byteOffset,value.byteLength));
  if(b.length<6)throw new Error('Pacote BLE curto: '+b.map(x=>x.toString(16).padStart(2,'0')).join('-'));
@@ -73,6 +157,30 @@ function decode(value){
  if(!Number.isFinite(temp)||temp < -20||temp > 80||rh>100)throw new Error('Dados fora da faixa esperada.');
  const es=0.6108*Math.exp((17.27*temp)/(temp+237.3));
  return {bytes:b,temp,rh,vpd:es*(1-rh/100)};
+}
+async function saveReading(role,d,deviceName){
+ if(!activeUser || !isLab) return;
+ const now=Date.now();
+ if(now-sensors[role].lastSent<SEND_INTERVAL_MS)return;
+ sensors[role].lastSent=now;
+ const record={
+  environment:role,
+  environmentName:sensors[role].label,
+  sensorName:deviceName||'TP350S',
+  temp:Number(d.temp.toFixed(1)),
+  rh:Number(d.rh),
+  vpd:Number(d.vpd.toFixed(3)),
+  clientTime:new Date(now).toISOString(),
+  timestamp:firebase.database.ServerValue.TIMESTAMP,
+  bleBytes:d.bytes.join('-')
+ };
+ try{
+  await db.ref('leituras/'+role).push(record);
+  $('cloud-status').textContent='Último envio à nuvem: '+new Date(now).toLocaleTimeString('pt-BR')+' · '+sensors[role].label;
+ }catch(e){
+  $('cloud-status').textContent='Falha ao enviar '+sensors[role].label+': '+e.message;
+  console.error(e);
+ }
 }
 function onValue(role,event){
  const v=event.target.value;
@@ -84,14 +192,14 @@ function onValue(role,event){
   $('rh-'+role).textContent=String(d.rh);
   $('vpd-'+role).textContent=d.vpd.toFixed(2);
   $('updated-'+role).textContent=now.toLocaleTimeString('pt-BR');
-  const s=sensors[role];s.history.unshift({time:now.toLocaleTimeString('pt-BR'),temp:d.temp.toFixed(1),rh:d.rh,vpd:d.vpd.toFixed(2)});s.history=s.history.slice(0,8);
-  $('history-'+role).innerHTML=s.history.map(r=>`<tr><td>${r.time}</td><td>${r.temp}</td><td>${r.rh}</td><td>${r.vpd}</td></tr>`).join('');
   setStatus(role,'Conectado · recebendo notificações do sensor.');
+  saveReading(role,d,sensors[role].device?.name);
  }catch(e){setStatus(role,'Pacote recebido, mas não interpretado: '+e.message);}
 }
 async function connect(role){
+ if(!isLab){setStatus(role,'Esta conta tem acesso somente para consulta.');return;}
  const s=sensors[role];
- if(!navigator.bluetooth){setStatus(role,'Web Bluetooth indisponível. Use Chrome atualizado em Android por HTTPS.');return;}
+ if(!navigator.bluetooth){setStatus(role,'Web Bluetooth indisponível. Use Chrome atualizado em computador compatível e HTTPS.');return;}
  if(s.device?.gatt?.connected){setStatus(role,'Este sensor já está conectado.');return;}
  try{
   setStatus(role,'Selecione o TP350S correspondente a '+s.label+'…');
@@ -120,6 +228,48 @@ async function disconnect(role){
  try{if(s.characteristic)await s.characteristic.stopNotifications();if(s.device?.gatt?.connected)s.device.gatt.disconnect();}catch(e){}
  s.characteristic=null;$('connect-'+role).disabled=false;$('disconnect-'+role).disabled=true;setStatus(role,'Desconectado.');
 }
+function showApp(user){
+ activeUser=user;
+ isLab=user.uid===LAB_UID;
+ const isEvelyn=user.uid===EVELYN_UID;
+ if(!isLab&&!isEvelyn){
+  auth.signOut();
+  showError('Esta conta não está autorizada para o painel.');
+  return;
+ }
+ $('login-panel').classList.add('hidden');
+ $('app-panel').classList.remove('hidden');
+ $('auth-badge').textContent=isLab?'Laboratório · leitura e gravação':'Evelyn · somente leitura';
+ $('role-notice').textContent=isLab
+  ?'Conta do laboratório autenticada. Conecte os sensores Bluetooth neste computador para transmitir uma amostra por minuto de cada ambiente.'
+  :'Acesso remoto somente para consulta. Os dados são recebidos do Firebase; não é necessário parear sensores neste dispositivo.';
+ $('controls-micro').classList.toggle('hidden',!isLab);
+ $('controls-hidro').classList.toggle('hidden',!isLab);
+ startHistoryListeners();
+}
+$('login-button').addEventListener('click',async()=>{
+ showError('');
+ const email=$('email').value.trim(),password=$('password').value;
+ if(!email||!password){showError('Informe e-mail e senha.');return;}
+ $('login-button').disabled=true;
+ try{await auth.signInWithEmailAndPassword(email,password);}
+ catch(e){showError('Não foi possível entrar: '+e.message);}
+ finally{$('login-button').disabled=false;}
+});
+$('password').addEventListener('keydown',e=>{if(e.key==='Enter')$('login-button').click();});
+$('logout-button').addEventListener('click',async()=>{
+ stopHistoryListeners();
+ for(const role of ['micro','hidro'])await disconnect(role);
+ await auth.signOut();
+});
+auth.onAuthStateChanged(user=>{
+ if(user)showApp(user);
+ else{
+  activeUser=null;isLab=false;stopHistoryListeners();
+  $('app-panel').classList.add('hidden');$('login-panel').classList.remove('hidden');
+  $('auth-badge').textContent='Não autenticado';
+ }
+});
 $('connect-micro').addEventListener('click',()=>connect('micro'));
 $('disconnect-micro').addEventListener('click',()=>disconnect('micro'));
 $('connect-hidro').addEventListener('click',()=>connect('hidro'));
