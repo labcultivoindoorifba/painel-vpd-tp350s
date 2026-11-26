@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Painel remoto — Cultivo Indoor IFBA</title>
+<style>
+:root{--ink:#183b3a;--muted:#647575;--bg:#f3f6f4;--card:#fff;--line:#dce6e1;--accent:#174b47;--warn:#9a5b00;--bad:#a12d2d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#203331;font:15px system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+header{background:#173f3c;color:#fff;padding:22px max(18px,calc((100% - 1100px)/2))}header h1{font-size:clamp(21px,4vw,30px);margin:0 0 5px}header p{margin:0;color:#d5e6df}
+main{max-width:1100px;margin:24px auto;padding:0 16px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 3px 12px #183b3a0b}
+#login{max-width:430px;margin:40px auto}.field{display:block;margin:12px 0 5px;color:var(--muted);font-size:13px}input{width:100%;padding:12px;border:1px solid #cbd8d2;border-radius:9px;font-size:16px}button{border:0;border-radius:9px;padding:11px 16px;background:var(--accent);color:white;font-weight:650;cursor:pointer}button.secondary{background:#e8efeb;color:var(--ink)}button:disabled{opacity:.55;cursor:wait}.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.muted{color:var(--muted)}.error{color:var(--bad);margin-top:10px}.hidden{display:none!important}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:14px}.metric{background:#f3f7f4;border-radius:10px;padding:12px}.metric small{display:block;color:var(--muted);margin-bottom:5px}.metric strong{font-size:clamp(21px,3vw,29px);color:var(--ink)}h2{font-size:19px;margin:0 0 8px}.updated{font-size:13px;color:var(--muted);margin-top:12px}.status{font-size:13px;color:var(--muted)}.linkstate{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border-radius:9px;font-size:13px;font-weight:700;margin:8px 0 2px}.linkstate.ok{background:#e4f4e9;color:#176337}.linkstate.warn{background:#fff2d9;color:#865300}.linkstate.bad{background:#fde8e8;color:#9b2525}.dot{width:9px;height:9px;border-radius:50%;background:currentColor}
+.bletools{display:flex;flex-direction:column;gap:7px;margin:10px 0 6px}.bletools button{align-self:flex-start}.bletools button:disabled{cursor:not-allowed}.ble-extra{font-size:12px;color:var(--muted);margin:2px 0}.ble-eventbox{margin-top:8px;padding:8px 10px;background:#f7faf8;border:1px solid var(--line);border-radius:9px}.ble-eventbox strong{font-size:12px;color:var(--ink)}.ble-eventlist{margin-top:5px;font-size:12px;color:var(--muted);max-height:94px;overflow:auto}.ble-event{padding:4px 0;border-bottom:1px solid #e5ece8}.ble-event:last-child{border-bottom:0}.tablewrap{overflow:auto;margin-top:12px}table{border-collapse:collapse;width:100%;min-width:420px}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line);font-size:13px}th{color:var(--muted);font-weight:650;background:#f7faf8;position:sticky;top:0}.sectionhead{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.metric{padding:9px}.metric strong{font-size:21px}}
+</style>
+</head>
+<body>
+<header><h1>Painel remoto — Cultivo Indoor IFBA</h1><p>Consulta das leituras registradas no laboratório · Microverdes, Hidroponia e Estufa</p></header>
+<main>
+<section id="login" class="card">
+<h2>Acesso ao painel</h2><p class="muted">Entre com o e-mail e a senha cadastrados no projeto.</p>
+<label class="field" for="email">E-mail</label><input id="email" type="email" autocomplete="username" placeholder="seu e-mail">
+<label class="field" for="password">Senha</label><input id="password" type="password" autocomplete="current-password" placeholder="Sua senha">
+<div class="actions" style="margin-top:16px"><button id="loginBtn">Entrar</button></div><div id="loginError" class="error" role="alert"></div>
+</section>
+<section id="dashboard" class="hidden">
+<div class="card sectionhead"><div><strong id="userLabel">Conectado</strong><div class="status" id="connectionStatus">Conectando ao banco de dados…</div></div><div class="actions"><button class="secondary" id="refreshBtn">Atualizar</button><button class="secondary" id="logoutBtn">Sair</button></div></div>
+<div class="grid">
+<article class="card"><h2>🌱 Microverdes</h2><div class="bletools"><button id="connect-micro">Conectar sensor de Microverdes</button><span id="ble-micro" class="status">Bluetooth aguardando conexão</span><div class="ble-extra" id="ble-retry-micro">Reconexão automática: aguardando conexão inicial</div><div class="ble-eventbox"><strong>Histórico de conexão — Microverdes</strong><div class="ble-eventlist" id="ble-events-micro">Nenhum evento registrado ainda.</div></div></div><div class="linkstate warn" id="microLinkStatus"><span class="dot"></span><span>Aguardando primeira leitura</span></div><div class="status" id="microStatus">Aguardando dados…</div><div class="metrics"><div class="metric"><small>Temperatura</small><strong id="microTemp">—</strong></div><div class="metric"><small>Umidade</small><strong id="microRh">—</strong></div><div class="metric"><small>VPD</small><strong id="microVpd">—</strong></div></div><div class="updated" id="microTime">Última leitura: —</div><div class="sectionhead" style="margin-top:18px"><strong>Histórico — Microverdes</strong><button class="secondary" id="csvMicroBtn">CSV</button></div><div class="tablewrap"><table><thead><tr><th>Data/hora</th><th>°C</th><th>UR%</th><th>VPD</th></tr></thead><tbody id="microHistory"><tr><td colspan="4">Carregando…</td></tr></tbody></table></div></article>
+<article class="card"><h2>💧 Hidroponia</h2><div class="bletools"><button id="connect-hidro">Conectar sensor de Hidroponia</button><span id="ble-hidro" class="status">Bluetooth aguardando conexão</span><div class="ble-extra" id="ble-retry-hidro">Reconexão automática: aguardando conexão inicial</div><div class="ble-eventbox"><strong>Histórico de conexão — Hidroponia</strong><div class="ble-eventlist" id="ble-events-hidro">Nenhum evento registrado ainda.</div></div></div><div class="linkstate warn" id="hidroLinkStatus"><span class="dot"></span><span>Aguardando primeira leitura</span></div><div class="status" id="hidroStatus">Aguardando dados…</div><div class="metrics"><div class="metric"><small>Temperatura</small><strong id="hidroTemp">—</strong></div><div class="metric"><small>Umidade</small><strong id="hidroRh">—</strong></div><div class="metric"><small>VPD</small><strong id="hidroVpd">—</strong></div></div><div class="updated" id="hidroTime">Última leitura: —</div><div class="sectionhead" style="margin-top:18px"><strong>Histórico — Hidroponia</strong><button class="secondary" id="csvHidroBtn">CSV</button></div><div class="tablewrap"><table><thead><tr><th>Data/hora</th><th>°C</th><th>UR%</th><th>VPD</th></tr></thead><tbody id="hidroHistory"><tr><td colspan="4">Carregando…</td></tr></tbody></table></div></article>
+<article class="card"><h2>🌡️ Estufa</h2><div class="linkstate warn" id="estufaLinkStatus"><span class="dot"></span><span>Aguardando primeira leitura</span></div><div class="status" id="estufaStatus">Aguardando dados…</div><div class="metrics"><div class="metric"><small>Temperatura</small><strong id="estufaTemp">—</strong></div><div class="metric"><small>Umidade</small><strong id="estufaRh">—</strong></div><div class="metric"><small>VPD</small><strong id="estufaVpd">—</strong></div></div><div class="updated" id="estufaTime">Última leitura: —</div><div class="sectionhead" style="margin-top:18px"><strong>Histórico — Estufa</strong><button class="secondary" id="csvEstufaBtn">CSV</button></div><div class="tablewrap"><table><thead><tr><th>Data/hora</th><th>°C</th><th>UR%</th><th>VPD</th></tr></thead><tbody id="estufaHistory"><tr><td colspan="4">Carregando…</td></tr></tbody></table></div></article>
+</div>
+<div class="card"><strong>Como interpretar o estado</strong><p class="muted">O painel remoto verifica se continuam chegando leituras ao Firebase. Se parar de receber dados, ele avisará que pode ser necessário verificar/reconectar o sensor no Lenovo do laboratório. A confirmação da conexão Bluetooth física só é feita no painel local do Lenovo.</p><div class="actions"><button class="secondary" id="csvBtn">Exportar histórico completo (CSV)</button></div></div>
+</section>
+</main>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig={
+ apiKey:"AIzaSyC8xE06z8Y4miCBimU_7tdUXBFkicGrxi8",
+ authDomain:"monitora-cultivo-indoor-ifba.firebaseapp.com",
+ databaseURL:"https://monitora-cultivo-indoor-ifba-default-rtdb.firebaseio.com",
+ projectId:"monitora-cultivo-indoor-ifba",
+ storageBucket:"monitora-cultivo-indoor-ifba.firebasestorage.app",
+ messagingSenderId:"860246033433",
+ appId:"1:860246033433:web:255e2bdaf3f5b0a0d85688"
+};
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth(), db=firebase.database();
+const $=id=>document.getElementById(id); let cache={micro:[],hidro:[],estufa:[]}, listeners=[];
+function dateText(v){if(!v)return '—';const d=new Date(Number(v));return isNaN(d)?'—':d.toLocaleString('pt-BR')}
+function val(v,d=1){return Number.isFinite(Number(v))?Number(v).toFixed(d):'—'}
+function normalize(obj){return Object.entries(obj||{}).map(([key,x])=>({...x,_key:key})).filter(x=>x&&typeof x==='object').sort((a,b)=>(Number(a.timestamp)||0)-(Number(b.timestamp)||0))}
+const STALE_MS=40000; // alerta se não houver nova leitura por 40 segundos
+function setLinkState(env){const prefix=env,el=$(prefix+'LinkStatus'),latest=cache[env][cache[env].length-1];
+ if(!latest){el.className='linkstate warn';el.innerHTML='<span class="dot"></span><span>Aguardando primeira leitura</span>';return}
+ const age=Date.now()-Number(latest.timestamp||0);
+ if(!Number.isFinite(age)||age<0){el.className='linkstate warn';el.innerHTML='<span class="dot"></span><span>Horário da leitura indisponível</span>';return}
+ if(age<=STALE_MS){el.className='linkstate ok';el.innerHTML='<span class="dot"></span><span>Recebendo dados · comunicação ativa</span>'}
+ else {el.className='linkstate bad';el.innerHTML='<span class="dot"></span><span>SEM NOVAS LEITURAS · verificar/reconectar no Lenovo</span>'}
+ const seconds=Math.floor(age/1000);$(prefix+'Time').textContent='Última leitura: '+dateText(latest.timestamp)+' · há '+seconds+' s';
+}
+function renderEnv(env,records){const prefix=env,latest=records[records.length-1];cache[env]=records;
+ if(!latest){$(prefix+'Status').textContent='Nenhuma leitura encontrada.';$(prefix+'Temp').textContent='—';$(prefix+'Rh').textContent='—';$(prefix+'Vpd').textContent='—';$(prefix+'Time').textContent='Última leitura: —';setLinkState(env);$(prefix+'History').innerHTML='<tr><td colspan="4">Ainda não há leituras gravadas.</td></tr>';return}
+ $(prefix+'Temp').textContent=val(latest.temp)+' °C';$(prefix+'Rh').textContent=val(latest.rh,0)+' %';$(prefix+'Vpd').textContent=val(latest.vpd,3)+' kPa';$(prefix+'Status').textContent='Último registro recebido · '+(latest.sensorName||'TP350S');setLinkState(env);
+ $(prefix+'History').innerHTML=records.slice().reverse().slice(0,50).map(x=>`<tr><td>${dateText(x.timestamp)}</td><td>${val(x.temp)}</td><td>${val(x.rh,0)}</td><td>${val(x.vpd,3)}</td></tr>`).join('');
+}
+function renderHistory(){['micro','hidro','estufa'].forEach(setLinkState)}
+function stopListeners(){listeners.forEach(r=>r.off());listeners=[]}
+function subscribe(){stopListeners();$('connectionStatus').textContent='Conectado ao Firebase · recebendo atualizações';['micro','hidro','estufa'].forEach(env=>{const ref=db.ref('leituras/'+env).limitToLast(50);const cb=snap=>{const arr=normalize(snap.val());renderEnv(env,arr);renderHistory()};ref.on('value',cb,err=>{$('connectionStatus').textContent='Erro ao consultar: '+err.message});listeners.push(ref)});}
+$('loginBtn').onclick=async()=>{$('loginError').textContent='';$('loginBtn').disabled=true;try{await auth.signInWithEmailAndPassword($('email').value.trim(),$('password').value)}catch(e){$('loginError').textContent='Não foi possível entrar: '+(e.code||e.message)}finally{$('loginBtn').disabled=false}};
+$('password').addEventListener('keydown',e=>{if(e.key==='Enter')$('loginBtn').click()});
+auth.onAuthStateChanged(user=>{if(user){$('login').classList.add('hidden');$('dashboard').classList.remove('hidden');$('userLabel').textContent=user.email||'Usuário autenticado';subscribe()}else{stopListeners();$('dashboard').classList.add('hidden');$('login').classList.remove('hidden');cache={micro:[],hidro:[],estufa:[]}}});
+$('logoutBtn').onclick=()=>auth.signOut();$('refreshBtn').onclick=()=>subscribe();setInterval(()=>{if(!$('dashboard').classList.contains('hidden'))renderHistory()},1000);
+function exportCsv(envs){const rows=[['Ambiente','Timestamp','Data/hora','Temperatura_C','UR_percentual','VPD_kPa']];envs.forEach(env=>cache[env].forEach(x=>rows.push([env==='micro'?'Microverdes':env==='hidro'?'Hidroponia':'Estufa',x.timestamp||'',dateText(x.timestamp),x.temp??'',x.rh??'',x.vpd??''])));const csv='\uFEFF'+rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(';')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='historico_cultivo_indoor_ifba.csv';a.click();URL.revokeObjectURL(a.href)};
+$('csvBtn').onclick=()=>exportCsv(['micro','hidro','estufa']);$('csvMicroBtn').onclick=()=>exportCsv(['micro']);$('csvHidroBtn').onclick=()=>exportCsv(['hidro']);$('csvEstufaBtn').onclick=()=>exportCsv(['estufa']);
+
+// Bluetooth TP350S + gravação automática no mesmo Firebase do painel remoto.
+const BLE_SERVICE='00010203-0405-0607-0809-0a0b0c0d1910', BLE_CHAR='00010203-0405-0607-0809-0a0b0c0d2b10';
+const BLE_RETRIES=[3000,5000,10000,20000,30000], BLE_WARN=20000, BLE_LOST=40000;
+const ble={micro:{device:null,char:null,retry:null,attempt:0,manual:false,last:null,connecting:false},hidro:{device:null,char:null,retry:null,attempt:0,manual:false,last:null,connecting:false}};
+const BLE_EVENT_KEY='ifba_remote_ble_connection_events_v1';
+const bleEvents=(()=>{try{return JSON.parse(localStorage.getItem(BLE_EVENT_KEY)||'{\"micro\":[],\"hidro\":[]}')}catch(e){return{micro:[],hidro:[]}}})();
+function bleEscape(s){return String(s??'').replace(/[&<>"\']/g,c=>c==='&'?'&amp;':c==='<'?'&lt;':c==='>'?'&gt;':c==='"'?'&quot;':'&#39;')}
+function bleRenderEvents(role){const box=$('ble-events-'+role),list=bleEvents[role]||[];if(!list.length){box.textContent='Nenhum evento registrado ainda.';return}box.innerHTML=list.slice(0,8).map(e=>`<div class=\"ble-event\"><strong>${bleEscape(new Date(e.at).toLocaleString('pt-BR'))}</strong><br>${bleEscape(e.type)}${e.detail?' — '+bleEscape(e.detail):''}</div>`).join('')}
+function bleAddEvent(role,type,detail=''){if(!bleEvents[role])bleEvents[role]=[];bleEvents[role].unshift({at:Date.now(),type,detail});bleEvents[role]=bleEvents[role].slice(0,80);try{localStorage.setItem(BLE_EVENT_KEY,JSON.stringify(bleEvents))}catch(e){}bleRenderEvents(role)}
+function bleUpdateButton(role){const x=ble[role],btn=$('connect-'+role),connected=!!(x.device?.gatt?.connected&&x.char);btn.disabled=connected||x.connecting||!!x.retry;btn.textContent=connected?(role==='micro'?'Sensor de Microverdes conectado':'Sensor de Hidroponia conectado'):(x.connecting?'Conectando…':x.retry?'Reconexão automática em andamento':(role==='micro'?'Conectar sensor de Microverdes':'Conectar sensor de Hidroponia'));$('ble-retry-'+role).textContent=connected?'Reconexão automática: ativa se a conexão cair':x.retry?'Reconexão automática: tentativa programada':'Reconexão automática: aguardando conexão inicial'}
+function bleStatus(role,msg){$('ble-'+role).textContent=msg;bleUpdateButton(role)}
+function bleWrite(role,d){if(!auth.currentUser){bleStatus(role,'Entre com a conta do laboratório para enviar leituras.');return}
+ const record={environment:role,environmentName:role==='micro'?'Microverdes':'Hidroponia',sensorName:'TP350S',temp:d.temp,rh:d.rh,vpd:d.vpd,timestamp:Date.now(),clientTime:new Date().toISOString(),bleBytes:d.bytes};
+ db.ref('leituras/'+role).push(record).then(()=>bleStatus(role,'Bluetooth conectado · enviando leituras ao Firebase')).catch(e=>bleStatus(role,'Bluetooth conectado, mas o Firebase recusou a gravação: '+e.message));
+}
+function bleDecode(value){const b=Array.from(new Uint8Array(value.buffer,value.byteOffset,value.byteLength));if(b.length<6)throw Error('Pacote BLE curto');const temp=(b[3]|(b[4]<<8))/10,rh=b[5];if(temp < -20||temp>80||rh>100)throw Error('Leitura fora da faixa esperada');const es=.6108*Math.exp((17.27*temp)/(temp+237.3));return{temp,rh,vpd:es*(1-rh/100),bytes:b}}
+function bleSchedule(role){const x=ble[role];if(x.manual||!x.device||x.retry||x.connecting)return;const ms=BLE_RETRIES[Math.min(x.attempt,BLE_RETRIES.length-1)];x.attempt++;bleAddEvent(role,'TENTATIVA DE RECONEXÃO PROGRAMADA',`Tentativa ${x.attempt} em ${ms/1000} s`);bleStatus(role,`Conexão perdida · nova tentativa em ${ms/1000}s`);x.retry=setTimeout(()=>{x.retry=null;bleUpdateButton(role);bleEstablish(role,true)},ms);bleUpdateButton(role)}
+async function bleEstablish(role,retry=false){const x=ble[role];if(!x.device||x.manual||x.connecting)return;x.connecting=true;bleStatus(role,retry?'Tentando reconectar automaticamente…':'Conectando…');try{const server=await x.device.gatt.connect();const svc=await server.getPrimaryService(BLE_SERVICE);const ch=await svc.getCharacteristic(BLE_CHAR);await ch.startNotifications();x.char=ch;x.connecting=false;x.attempt=0;x.hasData=false;ch.addEventListener('characteristicvaluechanged',ev=>{try{const d=bleDecode(ev.target.value);x.last=Date.now();if(!x.hasData){x.hasData=true;bleAddEvent(role,'PRIMEIRA LEITURA BLE','Dados do sensor recebidos.')}bleWrite(role,d)}catch(e){bleStatus(role,'Pacote BLE inválido: '+e.message)}});bleStatus(role,'Bluetooth conectado · aguardando primeira leitura');bleAddEvent(role,retry?'RECONEXÃO BLE':'CONEXÃO BLE',retry?'Conexão restabelecida automaticamente.':'Sensor conectado com sucesso.');}catch(e){x.connecting=false;bleStatus(role,'Falha na conexão: '+e.message+' · tentando novamente');bleAddEvent(role,retry?'FALHA NA RECONEXÃO':'FALHA AO CONECTAR',e.message);bleSchedule(role);bleUpdateButton(role)}}
+async function bleConnect(role){if(!auth.currentUser){bleStatus(role,'Entre primeiro com a conta do laboratório.');return}if(!navigator.bluetooth){bleStatus(role,'Use Chrome no Lenovo, em endereço HTTPS.');return}const x=ble[role];if(x.device?.gatt?.connected){bleStatus(role,'Sensor já conectado.');return}try{bleStatus(role,'Selecione o TP350S de '+(role==='micro'?'Microverdes':'Hidroponia')+'…');const dev=await navigator.bluetooth.requestDevice({filters:[{namePrefix:'TP350S'}],optionalServices:[BLE_SERVICE]});x.device=dev;x.manual=false;dev.addEventListener('gattserverdisconnected',()=>{x.char=null;x.hasData=false;bleAddEvent(role,'DESCONEXÃO BLE','O navegador detectou que a conexão GATT caiu.');bleUpdateButton(role);if(!x.manual){bleStatus(role,'Bluetooth desconectado · reconexão automática iniciada');bleSchedule(role)}});bleAddEvent(role,'DISPOSITIVO SELECIONADO','TP350S autorizado para '+(role==='micro'?'Microverdes':'Hidroponia')+'.');await bleEstablish(role,false)}catch(e){bleStatus(role,'Não foi possível conectar: '+e.message);bleAddEvent(role,'SELEÇÃO/CONEXÃO CANCELADA',e.message);bleUpdateButton(role)}}
+$('connect-micro').addEventListener('click',()=>bleConnect('micro'));$('connect-hidro').addEventListener('click',()=>bleConnect('hidro'));
+['micro','hidro'].forEach(role=>{bleRenderEvents(role);bleUpdateButton(role)});
+setInterval(()=>{for(const role of ['micro','hidro']){const x=ble[role];if(!x.last)continue;const age=Date.now()-x.last;if(age>BLE_LOST&&x.device&&!x.manual&&!x.retry&&!x.connecting){bleStatus(role,'Mais de 40 s sem leitura · recuperando conexão');bleAddEvent(role,'SEM LEITURA','Mais de 40 s sem dados; recuperação iniciada.');try{if(x.device.gatt.connected)x.device.gatt.disconnect()}catch(e){}bleSchedule(role)}else if(age>BLE_WARN&&age<=BLE_LOST){bleStatus(role,'Atraso: mais de 20 s sem leitura')}}},5000);
+</script>
+</body></html>
